@@ -53,6 +53,15 @@ const listMessage = {
       }
       chat.welcome = isEnable
       break
+     case 'jarvis':
+     case 'autotalk':
+      if (m.isGroup) {
+        if (!(isAdmin || isOwner)) {
+          global.dfail('admin', m, conn)
+           throw false
+          }}
+      chat.jarvis = isEnable
+     break
       
       case 'detect':
       case 'detector':
@@ -188,7 +197,32 @@ const listMessage = {
       break
       
     default:
-      if (!/[01]/.test(command)) return await conn.sendMessage(m.chat, listMessage, { quoted: m })
+     if (!/[01]/.test(command)) return m.reply(`
+≡ List of options
+
+┌─⊷ *ADMIN*
+▢ welcome
+▢ antilink
+▢ nsfw
+▢ onlyenglish
+▢ autosticker
+▢ detect
+▢ antidelete
+▢ jarvis
+└───────────── 
+┌─⊷ *USERS*
+▢ autolevelup
+▢ chatbot 
+└─────────────
+┌─⊷ *OWNER*
+▢ public
+▢ onlydm
+▢ grouponly
+└─────────────
+*📌 Example :*
+*${usedPrefix}on* welcome
+*${usedPrefix}off* welcome
+`)
       throw false
   }
   /*conn.sendButton(m.chat, `
@@ -208,6 +242,6 @@ m.reply(`
 }
 handler.help = ['en', 'dis'].map(v => v + 'able <option>')
 handler.tags = ['nable']
-handler.command = /^((en|dis)able|(tru|fals)e|(turn)?o(n|ff)|[01])$/i
+handler.command = /^((en|dis)able|(turn)?o(n|ff)|[01])$/i
 
 export default handler

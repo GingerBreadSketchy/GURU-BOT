@@ -1,57 +1,68 @@
-import fetch from 'node-fetch'
-import axios from 'axios'
-let handler = async (m, {conn, text, usedPrefix, command }) => {
-  let chat = global.db.data.chats[m.chat]
-  if (!chat.nsfw) throw `🚫 this group doesn't support nsfw enable it by \n*${usedPrefix}enable* nsfw`
-  let user = global.db.data.users[m.sender].age
-  if (user < 17) throw `❎ ja padhai kar! age must be 18 to use this feature`
-  if (!text) throw `✳️ invalid format\n📌 Use : *${usedPrefix}xnxx <search>*\n\n or  URL:\n📌Use : *${usedPrefix}xnxxdl <url>*`
- m.react(rwait)
 
-let type = (command).toLowerCase()
-switch (type) {
-	case 'xnxxsearch':
-  case 'xnxx':
-  //if (!text) return m.reply(`✳️ ${msg.search()}`)
+import { xnxxSearch, xnxxdl } from '../lib/scraper.js';
+
+
+
+let handler = async (m, { conn, args, text, usedPrefix, command }) => {
+  let chat = global.db.data.chats[m.chat];
+  if (!chat.nsfw) throw `🚫 This group does not support NSFW content.\n\nTo turn it on, use: *${usedPrefix}enable* nsfw`;
+  let user = global.db.data.users[m.sender].age;
+  if (user < 18) throw `❎ You must be 18 years or older to use this feature.`;
+  if (!text) throw `✳️ What do you want to search?\n📌 Usage: *${usedPrefix + command} <search>*\n\nExample: Hot desi bhabi or you can use a link as well\nExample: .xnxx link *`;
+
+  m.react('⌛');
+
+  let url;
   try {
-  let res = await fetch(global.API('fgmods', '/api/xnxxsearch', { q: text }, 'apikey'))
-  let json = await res.json()
-   let listSections = []
-	Object.values(json.result).map((v, index) => {
-	listSections.push([`${index}┃ ${v.title}`, [
-          ['🎥 MP4', `${usedPrefix}xnxxdl ${v.link}`, `▢ 📌 *Títle* : ${v.title}`]
-        ]])
-	})
-	return conn.sendList(m.chat, '  ≡ *XNXX DL*🔎', `\n 🔞 Result:\n *${text}*`, igfg , `Click here`, listSections, m)
-	} catch (e) {
-    m.reply(`🔴 Error: invalid link`)
-     }
-  break
-  case 'xnxxdl':
-  // if (!text) return m.reply(`✳️ ${msg.example()} :\n${usedPrefix + command} https://www.xnxx.com/video-9q1wbf7/full_version_https_is.gd_utbgur_cute_sexy_japanese_amature_girl_sex_adult_douga`)
-   try {
-  let xn = await (await fetch(global.API('fgmods', '/api/xnxxdl', { url: text }, 'apikey'))).json()
-  conn.sendFile(m.chat, xn.result.files.high, xn.result.title + '.mp4', `
- ≡  *XNXX DL*
-  
-▢ *📌Title*: ${xn.result.title}
-▢ *⌚Duration:* ${xn.result.duration}
-▢ *🎞️quality:* ${xn.result.quality}
-`.trim(), m, false, { asDocument: chat.useDocument })
- m.react(done)
- } catch (e) {
-m.reply(`🔴 Error : invalid link`)
-}
-  break
+    url = new URL(text);
+  } catch (error) {
+    url = null;
+  }
 
-default:
-} 
-}
-handler.help = ['xnxx 🔎', 'xnxxdl <link>'] 
-handler.tags = ['nsfw', 'prem']
-handler.command = ['xnxxsearch', 'xnxxdl', 'xnxx'] 
-handler.diamond = false
-handler.premium = false
-handler.register = true
+  if (url) {
+    try {
+      const files = await xnxxdl(url.href);
+      if (files && files.high) {
+        conn.sendFile(
+          m.chat,
+          files.high,
+          'video.mp4',
+          'Here is your video',
+          m
+        );
+        m.react('✅');
+      } else {
+        m.reply('🔴 Error: Failed to retrieve the download URL.');
+      }
+    } catch (e) {
+      console.error(e);
+      m.reply('🔴 Error: We encountered a problem while processing the request.');
+    }
+  } else {
+    try {
+      const results = await xnxxSearch(text);
+      if (results.length > 0) {
+        const message = results.map((r, i) => `${i + 1}. [${r.title}](${r.link})`).join('\n');
+        m.reply(message, null, {
+          contextInfo: {
+            mentionJid: conn.parseMention(message),
+          },
+        });
+      } else {
+        m.reply('🔴 Error: No search results found.');
+      }
+    } catch (e) {
+      console.error(e);
+      m.reply('🔴 Error: We encountered a problem while processing the request.');
+    }
+  }
+};
 
-export default handler
+handler.help = ['xnxx'];
+handler.tags = ['nsfw', 'prem'];
+handler.command = ['xnxxsearch', 'xnxxdl', 'xnxx'];
+handler.group = true;
+handler.premium = false;
+handler.register = true;
+
+export default handler;
